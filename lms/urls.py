@@ -442,6 +442,12 @@ urlpatterns += (
     url(r'^comm/foldit_ops', 'foldit.views.foldit_ops', name="foldit_ops"),
 )
 
+# LTI grader views
+urlpatterns += (
+    # The path is hardcoded into their app...
+    url(r'^grade_lti', 'lti.views.grade', name="grade_lti"),
+)
+
 if settings.MITX_FEATURES.get('ENABLE_DEBUG_RUN_PYTHON'):
     urlpatterns += (
         url(r'^debug/run_python', 'debug.views.run_python'),
