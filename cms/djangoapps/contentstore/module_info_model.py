@@ -1,14 +1,24 @@
 from static_replace import replace_static_urls
 from xmodule.modulestore.exceptions import ItemNotFoundError
+from xblock.fields import Scope
+from util.json_request import JsonResponse
+from xmodule.modulestore.django import loc_mapper
+from contentstore.utils import get_modulestore
 
 
-def get_module_info(store, location, rewrite_static_links=False):
+def get_module_info(usage_loc, rewrite_static_links=False):
+    """
+    Old metadata, data, id representation of a leaf module fetcher.
+    :param usage_loc: A BlockUsageLocator
+    """
+    old_location = loc_mapper().translate_locator_to_location(usage_loc)
+    store = get_modulestore(old_location)
     try:
-        module = store.get_item(location)
+        module = store.get_item(old_location)
     except ItemNotFoundError:
         # create a new one
-        store.create_and_save_xmodule(location)
-        module = store.get_item(location)
+        store.create_and_save_xmodule(old_location)
+        module = store.get_item(old_location)
 
     data = module.data
     if rewrite_static_links:
@@ -21,34 +31,42 @@ def get_module_info(store, location, rewrite_static_links=False):
         )
 
     return {
-        'id': module.location.url(),
+        'id': unicode(usage_loc),
         'data': data,
-        # TODO (cpennington): This really shouldn't have to do this much reaching in to get the metadata
-        # what's the intent here? all metadata incl inherited & namespaced?
-        'metadata': module.xblock_kvs._metadata
+        'metadata': module.get_explicitly_set_fields_by_scope(Scope.settings)
     }
 
 
-def set_module_info(store, location, post_data):
+def set_module_info(usage_loc, post_data):
+    """
+    Old metadata, data, id representation leaf module updater.
+    :param usage_loc: a BlockUsageLocator
+    :param post_data: the payload with data, metadata, and possibly children (even tho the getter
+    doesn't support children)
+    """
+    old_location = loc_mapper().translate_locator_to_location(usage_loc)
+    store = get_modulestore(old_location)
     module = None
     try:
-        module = store.get_item(location)
+        module = store.get_item(old_location)
     except ItemNotFoundError:
         # new module at this location: almost always used for the course about pages; thus, no parent. (there
         # are quite a handful of about page types available for a course and only the overview is pre-created)
-        store.create_and_save_xmodule(location)
-        module = store.get_item(location)
+        store.create_and_save_xmodule(old_location)
+        module = store.get_item(old_location)
 
     if post_data.get('data') is not None:
         data = post_data['data']
-        store.update_item(location, data)
+        store.update_item(old_location, data)
+    else:
+        data = module.get_explicitly_set_fields_by_scope(Scope.content)
 
     # cdodge: note calling request.POST.get('children') will return None if children is an empty array
     # so it lead to a bug whereby the last component to be deleted in the UI was not actually
     # deleting the children object from the children collection
     if 'children' in post_data and post_data['children'] is not None:
         children = post_data['children']
-        store.update_children(location, children)
+        store.update_children(old_location, children)
 
     # cdodge: also commit any metadata which might have been passed along in the
     # POST from the client, if it is there
@@ -61,15 +79,26 @@ def set_module_info(store, location, post_data):
         # update existing metadata with submitted metadata (which can be partial)
         # IMPORTANT NOTE: if the client passed pack 'null' (None) for a piece of metadata that means 'remove it'
         for metadata_key, value in posted_metadata.items():
+            field = module.fields[metadata_key]
 
-            if posted_metadata[metadata_key] is None:
+            if value is None:
                 # remove both from passed in collection as well as the collection read in from the modulestore
-                if module._field_data.has(module, metadata_key):
-                    module._field_data.delete(module, metadata_key)
-                del posted_metadata[metadata_key]
+                field.delete_from(module)
             else:
-                module._field_data.set(module, metadata_key, value)
+                try:
+                    value = field.from_json(value)
+                except ValueError:
+                    return JsonResponse({"error": "Invalid data"}, 400)
+                field.write_to(module, value)
 
         # commit to datastore
-        # TODO (cpennington): This really shouldn't have to do this much reaching in to get the metadata
-        store.update_metadata(location, module.xblock_kvs._metadata)
+        metadata = module.get_explicitly_set_fields_by_scope(Scope.settings)
+        store.update_metadata(old_location, metadata)
+    else:
+        metadata = module.get_explicitly_set_fields_by_scope(Scope.settings)
+
+    return {
+        'id': unicode(usage_loc),
+        'data': data,
+        'metadata': metadata
+    }

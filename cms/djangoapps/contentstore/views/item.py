@@ -69,6 +69,9 @@ def save_item(request):
         Any whose values are None will be deleted not set to None! Absent ones will be left alone
     :nullout (optional): which metadata fields to set to None
     """
+    # F I X M E: dhm: when refactoring for restful api, replace module_info_model.py or use it instead.
+    # it's an out-of-sync duplicate of this
+
     # The nullout is a bit of a temporary copout until we can make module_edit.coffee and the metadata editors a
     # little smarter and able to pass something more akin to {unset: [field, field]}
 

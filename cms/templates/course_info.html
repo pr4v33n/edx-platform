@@ -1,4 +1,7 @@
-<%! from django.utils.translation import ugettext as _ %>
+<%! 
+    from django.utils.translation import ugettext as _
+    from xmodule.modulestore.django import loc_mapper
+%>
 <%inherit file="base.html" />
 <%namespace name='static' file='static_content.html'/>
 
@@ -17,21 +20,26 @@
 
 <%block name="jsextra">
   <script type="text/javascript" charset="utf-8">
+    <%
+        ctx_loc = context_course.location
+        location = loc_mapper().translate_location(ctx_loc.course_id, ctx_loc, False, True)
+        urlbase = location.url_reverse('course_info/', '')
+    %>
+  
 require(["domReady!", "jquery", "js/collections/course_update", "js/models/module_info", "js/models/course_info", "js/views/course_info_edit"],
   function(doc, $, CourseUpdateCollection, ModuleInfoModel, CourseInfoModel, CourseInfoEditView) {
     var course_updates = new CourseUpdateCollection();
-    course_updates.urlbase = '${url_base}';
+    course_updates.url = '${urlbase}';
     course_updates.fetch({reset: true});
 
     var course_handouts = new ModuleInfoModel({
-        id: '${handouts_location}'
+        id: '${handouts_locator}'
       });
-    course_handouts.urlbase = '${url_base}';
 
     var editor = new CourseInfoEditView({
       el: $('.main-wrapper'),
       model : new CourseInfoModel({
-        courseId : '${context_course.location}',
+        courseId : '${ctx_loc}',
         updates : course_updates,
         base_asset_url : '${base_asset_url}',
         handouts : course_handouts

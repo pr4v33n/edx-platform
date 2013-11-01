@@ -22,8 +22,7 @@ from xblock.fields import Scope
 from util.json_request import expect_json, JsonResponse
 
 from contentstore.module_info_model import get_module_info, set_module_info
-from contentstore.utils import (get_modulestore, get_lms_link_for_item,
-    compute_unit_state, UnitState, get_course_for_item)
+from contentstore.utils import get_lms_link_for_item, compute_unit_state, UnitState, get_course_for_item
 
 from models.settings.course_grading import CourseGradingModel
 
@@ -32,6 +31,7 @@ from .access import has_access
 from xmodule.x_module import XModuleDescriptor
 from xblock.plugin import PluginMissingError
 from xblock.runtime import Mixologist
+from xmodule.modulestore.locator import BlockUsageLocator
 
 __all__ = ['OPEN_ENDED_COMPONENT_TYPES',
            'ADVANCED_COMPONENT_POLICY_KEY',
@@ -395,37 +395,28 @@ def unpublish_unit(request):
     return HttpResponse()
 
 
+# pylint: disable=unused-argument
 @expect_json
 @require_http_methods(("GET", "POST", "PUT"))
 @login_required
 @ensure_csrf_cookie
-def module_info(request, module_location):
+def module_info(request, tag=None, course_id=None, branch=None, version_guid=None, block=None):
     "Get or set information for a module in the modulestore"
-    location = Location(module_location)
+    if 'application/json' in request.META.get('HTTP_ACCEPT', 'application/json'):
+        usage_loc = BlockUsageLocator(course_id=course_id, branch=branch, version_guid=version_guid, usage_id=block)
+        if not has_access(request.user, usage_loc):
+            raise PermissionDenied()
 
-    # check that logged in user has permissions to this item
-    if not has_access(request.user, location):
-        raise PermissionDenied()
-
-    rewrite_static_links = request.GET.get('rewrite_url_links', 'True') in ['True', 'true']
-    logging.debug('rewrite_static_links = {0} {1}'.format(
-        request.GET.get('rewrite_url_links', False),
-        rewrite_static_links)
-    )
-
-    # check that logged in user has permissions to this item
-    if not has_access(request.user, location):
-        raise PermissionDenied()
-
-    if request.method == 'GET':
-        rsp = get_module_info(
-            get_modulestore(location),
-            location,
-            rewrite_static_links=rewrite_static_links
+        rewrite_static_links = request.GET.get('rewrite_url_links', 'True') in ['True', 'true']
+        logging.debug('rewrite_static_links = {0} {1}'.format(
+            request.GET.get('rewrite_url_links', False),
+            rewrite_static_links)
         )
-    elif request.method in ("POST", "PUT"):
-        rsp = set_module_info(
-            get_modulestore(location),
-            location, request.json
-        )
-    return JsonResponse(rsp)
+
+        if request.method == 'GET':
+            rsp = get_module_info(usage_loc, rewrite_static_links=rewrite_static_links)
+        elif request.method in ("POST", "PUT"):
+            rsp = set_module_info(usage_loc, request.json)
+        return JsonResponse(rsp)
+    else:
+        raise NotImplementedError('coming soon')

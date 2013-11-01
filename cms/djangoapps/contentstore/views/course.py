@@ -55,7 +55,7 @@ from xmodule.modulestore.locator import BlockUsageLocator
 from course_creators.views import get_course_creator_status, add_user_with_status_unrequested
 
 __all__ = ['course_info', 'course_handler',
-           'course_info_updates', 'get_course_settings',
+           'get_course_settings',
            'course_config_graders_page',
            'course_config_advanced_page',
            'course_settings_updates',
@@ -299,38 +299,54 @@ def create_new_course(request):
     return JsonResponse({'url': new_location.url_reverse("course/", "")})
 
 
+# pylint: disable=unused-argument
 @login_required
 @ensure_csrf_cookie
-def course_info(request, org, course, name, provided_id=None):
+@require_http_methods(("GET", "POST", "PUT", "DELETE"))
+def course_info(request, tag=None, course_id=None, branch=None, version_guid=None, block=None, provided_id=None):
     """
-    Send models and views as well as html for editing the course info to the
-    client.
-
-    org, course, name: Attributes of the Location for the item to edit
+    GET
+        html: return html for editing the course info updates.
+        json: return the course info update models
+    POST
+        json: create an update
+    PUT or DELETE
+        json: change an existing update
     """
-    location = get_location_and_verify_access(request, org, course, name)
+    course_location = BlockUsageLocator(course_id=course_id, branch=branch, version_guid=version_guid, usage_id=block)
+    course_old_location = loc_mapper().translate_locator_to_location(course_location)
+    if 'application/json' in request.META.get('HTTP_ACCEPT', 'application/json'):
+        course_info_location = course_old_location.replace(category='course_info', name='updates')
+        info_location = loc_mapper().translate_location(
+            course_old_location.course_id, course_info_location, False, True
+        )
+        return course_info_updates(request, info_location, provided_id)
+    elif request.method == 'GET':  # assume html
+        if not has_access(request.user, course_location):
+            raise PermissionDenied()
 
-    course_module = modulestore().get_item(location)
+        course_module = modulestore().get_item(course_old_location)
 
-    # get current updates
-    location = Location(['i4x', org, course, 'course_info', "updates"])
+        handouts_old_location = course_old_location.replace(category='course_info', name='handouts')
+        handout_usage_id = loc_mapper().add_block_location_translator(
+            handouts_old_location, course_old_location.course_id, 'handouts'
+        )
+        handouts_locator = BlockUsageLocator(
+            course_id=course_id, branch=branch, version_guid=version_guid, usage_id=handout_usage_id
+        )
 
-    return render_to_response(
-        'course_info.html',
-        {
-            'context_course': course_module,
-            'url_base': "/" + org + "/" + course + "/",
-            'course_updates': json.dumps(get_course_updates(location)),
-            'handouts_location': Location(['i4x', org, course, 'course_info', 'handouts']).url(),
-            'base_asset_url': StaticContent.get_base_url_path_for_course_assets(location) + '/'
-        }
-    )
+        return render_to_response(
+            'course_info.html',
+            {
+                'context_course': course_module,
+                'handouts_locator': handouts_locator,
+                'base_asset_url': StaticContent.get_base_url_path_for_course_assets(course_old_location) + '/'
+            }
+        )
+
 
 @expect_json
-@require_http_methods(("GET", "POST", "PUT", "DELETE"))
-@login_required
-@ensure_csrf_cookie
-def course_info_updates(request, org, course, provided_id=None):
+def course_info_updates(request, locator, provided_id=None):
     """
     restful CRUD operations on course_info updates.
 
@@ -338,16 +354,15 @@ def course_info_updates(request, org, course, provided_id=None):
     provided_id should be none if it's new (create) and a composite of the
     update db id + index otherwise.
     """
-    # ??? No way to check for access permission afaik
-    # get current updates
-    location = ['i4x', org, course, 'course_info', "updates"]
-
     if provided_id == '':
         provided_id = None
 
-    # check that logged in user has permissions to this item
-    if not has_access(request.user, location):
+    # check that logged in user has permissions to this item (GET shouldn't require this level?)
+    if not has_access(request.user, locator):
         raise PermissionDenied()
+
+    # get current updates
+    location = loc_mapper().translate_locator_to_location(locator)
 
     if request.method == 'GET':
         return JsonResponse(get_course_updates(location))

@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 def get_course_updates(location):
     """
     Retrieve the relevant course_info updates and unpack into the model which the client expects:
-    [{id : location.url() + idx to make unique, date : string, content : html string}]
+    [{id : index, date : string, content : html string}]
     """
     try:
         course_updates = modulestore('direct').get_item(location)
@@ -41,9 +41,11 @@ def get_course_updates(location):
             if len(update) > 0:
                 content = _course_info_content(update)
                 # make the id on the client be 1..len w/ 1 being the oldest and len being the newest
-                course_upd_collection.append({"id": location_base + "/" + str(len(course_html_parsed) - idx),
-                                              "date": update.findtext("h2"),
-                                              "content": content})
+                course_upd_collection.append({
+                    "id": len(course_html_parsed) - idx,
+                    "date": update.findtext("h2"),
+                    "content": content
+                })
 
     return course_upd_collection
 
@@ -57,7 +59,8 @@ def update_course_updates(location, update, passed_id=None):
     try:
         course_updates = modulestore('direct').get_item(location)
     except ItemNotFoundError:
-        return HttpResponseBadRequest()
+        modulestore('direct').create_and_save_xmodule(location)
+        course_updates = modulestore('direct').get_item(location)
 
     # purely to handle free formed updates not done via editor. Actually kills them, but at least doesn't break.
     try:
@@ -89,17 +92,17 @@ def update_course_updates(location, update, passed_id=None):
         course_html_parsed[-idx] = new_html_parsed
     else:
         course_html_parsed.insert(0, new_html_parsed)
-
         idx = len(course_html_parsed)
-        passed_id = course_updates.location.url() + "/" + str(idx)
 
     # update db record
     course_updates.data = html.tostring(course_html_parsed)
     modulestore('direct').update_item(location, course_updates.data)
 
-    return {"id": passed_id,
-            "date": update['date'],
-            "content": _course_info_content(new_html_parsed)}
+    return {
+        "id": idx,
+        "date": update['date'],
+        "content": _course_info_content(new_html_parsed),
+    }
 
 
 def _course_info_content(html_parsed):
