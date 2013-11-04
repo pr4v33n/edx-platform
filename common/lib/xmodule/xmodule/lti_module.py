@@ -10,6 +10,7 @@ from uuid import uuid4
 import logging
 import oauthlib.oauth1
 import urllib
+import json
 
 from xmodule.editing_module import MetadataOnlyEditingDescriptor
 from xmodule.raw_module import EmptyDataRawDescriptor
@@ -241,7 +242,7 @@ class LTIModule(LTIFields, XModule):
         return user_id
 
     def get_base_path(self):
-        return 'localhost:8000'
+        return self.system.ajax_url
 
     def get_context_id(self):
         # This is an opaque identifier that uniquely identifies the context that contains
@@ -312,7 +313,7 @@ class LTIModule(LTIFields, XModule):
             # for grades, TODO: generate properly:
             # required
             u'resource_link_id': self.get_resource_link_id(),
-            u'lis_outcome_service_url': '{}/grade_lti'.format(self.get_base_path()) if self.is_graded else '',
+            u'lis_outcome_service_url': self.get_base_path() if self.is_graded else '',
 
             # optional fields
             u'lis_result_sourcedid': self.get_lis_result_sourcedid(),
@@ -361,8 +362,54 @@ oauth_consumer_key="", oauth_signature="frVp4JuvT1mVXlxktiAUjQ7%2F1cw%3D"'}
         params.update(body)
         return params
 
+    def get_score(self):
+        return {
+            'score': 0.5,
+            'total': self.get_maxscore()
+        }
+
     def get_maxscore(self):
         return self.weight
+
+    def handle_ajax(self, dispatch, data):
+        """
+        This is called by courseware.module_render, to handle an AJAX call.
+
+        Returns json in following format:
+        {'status_code': HTTP status code, 'content': use it only for returning
+        data for action `read`}
+        """
+
+        # Investigate how will be applied changes to specific user_id
+
+        action = dispatch.lower()
+
+        if action == 'set':
+            if 'score' in data.keys():
+                return json.dumps({'status_code': 400})
+
+            self.system.publish({
+                'event_name': 'grade',
+                'value': data['score'],
+                'max_value': self.get_maxscore(),
+            })
+
+            return json.dumps({'status_code': 200})
+
+        elif action == 'read':
+            response = {
+                'status_code': 200,
+                'content': {
+                    'value': self.get_score(),
+                },
+            }
+
+            return json.dumps(response)
+
+        elif action == 'delete':
+            return json.dumps({'status_code': 200})
+
+        return json.dumps({'status_code': 404})
 
 
 class LTIModuleDescriptor(LTIFields, MetadataOnlyEditingDescriptor, EmptyDataRawDescriptor):
