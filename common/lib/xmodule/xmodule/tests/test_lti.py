@@ -4,7 +4,7 @@ from xmodule.lti_module import LTIModuleDescriptor
 from . import LogicTest
 
 
-class PollModuleTest(LogicTest):
+class LTIModuleTest(LogicTest):
     """Logic tests for Poll Xmodule."""
     descriptor_class = LTIModuleDescriptor
 
