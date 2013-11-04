@@ -242,7 +242,7 @@ class LTIModule(LTIFields, XModule):
         return user_id
 
     def get_base_path(self):
-        return self.system.ajax_url
+        return self.system.hostname + self.system.ajax_url
 
     def get_context_id(self):
         # This is an opaque identifier that uniquely identifies the context that contains
@@ -313,7 +313,7 @@ class LTIModule(LTIFields, XModule):
             # for grades, TODO: generate properly:
             # required
             u'resource_link_id': self.get_resource_link_id(),
-            u'lis_outcome_service_url': self.get_base_path() if self.is_graded else '',
+            u'lis_outcome_service_url': '{}/set'.format(self.get_base_path() if self.is_graded else ''),
 
             # optional fields
             u'lis_result_sourcedid': self.get_lis_result_sourcedid(),
@@ -379,7 +379,6 @@ oauth_consumer_key="", oauth_signature="frVp4JuvT1mVXlxktiAUjQ7%2F1cw%3D"'}
         {'status_code': HTTP status code, 'content': use it only for returning
         data for action `read`}
         """
-
         # Investigate how will be applied changes to specific user_id
 
         action = dispatch.lower()
