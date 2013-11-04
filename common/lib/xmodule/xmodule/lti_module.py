@@ -385,7 +385,7 @@ oauth_consumer_key="", oauth_signature="frVp4JuvT1mVXlxktiAUjQ7%2F1cw%3D"'}
         action = dispatch.lower()
 
         if action == 'set':
-            if 'score' in data.keys():
+            if 'score' not in data.keys():
                 return json.dumps({'status_code': 400})
 
             self.system.publish({
@@ -416,7 +416,6 @@ class LTIModuleDescriptor(LTIFields, MetadataOnlyEditingDescriptor, EmptyDataRaw
     """
     Descriptor for LTI Xmodule.
     """
-    always_recalculate_grades = True
     has_score = True
     graded = True
 
