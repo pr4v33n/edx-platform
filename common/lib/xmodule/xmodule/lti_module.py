@@ -142,6 +142,8 @@ class LTIModule(LTIFields, XModule):
     css = {'scss': [resource_string(__name__, 'css/lti/lti.scss')]}
     js_module_name = "LTI"
 
+    TEST_BASE_PATH = None
+
     def get_html(self):
         """
         Renders parameters to template.
@@ -242,7 +244,13 @@ class LTIModule(LTIFields, XModule):
         return user_id
 
     def get_base_path(self):
-        return self.system.hostname + self.system.ajax_url
+        if self.TEST_BASE_PATH:
+            return 'http://{host}{path}'.format(
+                host=self.TEST_BASE_PATH,
+                path=self.system.ajax_url,
+            )
+        else:
+            return self.system.hostname + self.system.ajax_url
 
     def get_context_id(self):
         # This is an opaque identifier that uniquely identifies the context that contains
