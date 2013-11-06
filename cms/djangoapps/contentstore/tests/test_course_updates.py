@@ -122,9 +122,7 @@ class CourseUpdateTest(CourseTestCase):
         course_locator = loc_mapper().translate_location(
             self.course.location.course_id, self.course.location, False, True
         )
-        # first get the update to force the creation
         course_info_url = course_locator.url_reverse('course_info/')
-
         resp = self.client.ajax_post(course_info_url, payload)
 
         payload = json.loads(resp.content)

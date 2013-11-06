@@ -302,11 +302,11 @@ def create_new_course(request):
 # pylint: disable=unused-argument
 @login_required
 @ensure_csrf_cookie
-@require_http_methods(("GET", "POST", "PUT", "DELETE"))
+@require_http_methods(["GET"])
 def course_info(request, tag=None, course_id=None, branch=None, version_guid=None, block=None, provided_id=None):
     """
     GET
-        html: return html for editing the course info updates.
+        html: return html for editing the course info handouts and updates.
         json: return the course info update models
     POST
         json: create an update
@@ -315,13 +315,7 @@ def course_info(request, tag=None, course_id=None, branch=None, version_guid=Non
     """
     course_location = BlockUsageLocator(course_id=course_id, branch=branch, version_guid=version_guid, usage_id=block)
     course_old_location = loc_mapper().translate_locator_to_location(course_location)
-    if 'application/json' in request.META.get('HTTP_ACCEPT', 'application/json'):
-        course_info_location = course_old_location.replace(category='course_info', name='updates')
-        info_location = loc_mapper().translate_location(
-            course_old_location.course_id, course_info_location, False, True
-        )
-        return course_info_updates(request, info_location, provided_id)
-    elif request.method == 'GET':  # assume html
+    if 'text/html' in request.META.get('HTTP_ACCEPT', 'text/html'):
         if not has_access(request.user, course_location):
             raise PermissionDenied()
 
@@ -345,15 +339,30 @@ def course_info(request, tag=None, course_id=None, branch=None, version_guid=Non
         )
 
 
+# pylint: disable=unused-argument
+@login_required
+@ensure_csrf_cookie
+@require_http_methods(("GET", "POST", "PUT", "DELETE"))
 @expect_json
-def course_info_updates(request, locator, provided_id=None):
+def course_info_updates(request, tag=None, course_id=None, branch=None, version_guid=None, block=None, provided_id=None):
     """
     restful CRUD operations on course_info updates.
-
-    org, course: Attributes of the Location for the item to edit
-    provided_id should be none if it's new (create) and a composite of the
-    update db id + index otherwise.
+    provided_id should be none if it's new (create) and index otherwise.
+    GET
+        json: return the course info update models
+    POST
+        json: create an update
+    PUT or DELETE
+        json: change an existing update
     """
+    if 'application/json' not in request.META.get('HTTP_ACCEPT', 'application/json'):
+        
+    course_location = BlockUsageLocator(course_id=course_id, branch=branch, version_guid=version_guid, usage_id=block)
+    course_old_location = loc_mapper().translate_locator_to_location(course_location)
+    course_info_location = course_old_location.replace(category='course_info', name='updates')
+    info_location = loc_mapper().translate_location(
+        course_old_location.course_id, course_info_location, False, True
+    )
     if provided_id == '':
         provided_id = None
 
