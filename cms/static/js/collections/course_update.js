@@ -5,7 +5,7 @@ define(["backbone", "js/models/course_update"], function(Backbone, CourseUpdateM
     */
     var CourseUpdateCollection = Backbone.Collection.extend({
         // instantiator must set url, but added here for lettuce tests
-        url: '/course_info',
+        url: '/course_info_update',
 
         model : CourseUpdateModel
     });

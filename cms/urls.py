@@ -103,7 +103,8 @@ urlpatterns += patterns(
     url(r'^request_course_creator$', 'request_course_creator'),
     # (?ix) == ignore case and verbose (multiline regex)
     url(r'(?ix)^course_team/{}(/)?(?P<email>.+)?$'.format(parsers.URL_RE_SOURCE), 'course_team_handler'),
-    url(r'(?ix)^course_info/{}(/)?(?P<provided_id>\d+)?$'.format(parsers.URL_RE_SOURCE), 'course_info'),
+    url(r'(?ix)^course_info/{}$'.format(parsers.URL_RE_SOURCE), 'course_info'),
+    url(r'(?ix)^course_info_update/{}(/)?(?P<provided_id>\d+)?$'.format(parsers.URL_RE_SOURCE), 'course_info_update'),
     url(r'(?ix)^course($|/){}$'.format(parsers.URL_RE_SOURCE), 'course_handler'),
     url(r'(?ix)^checklists/{}(/)?(?P<checklist_index>\d+)?$'.format(parsers.URL_RE_SOURCE), 'checklists_handler'),
     url(r'(?ix)^orphan/{}$'.format(parsers.URL_RE_SOURCE), 'orphan'),

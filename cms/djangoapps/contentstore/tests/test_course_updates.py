@@ -15,7 +15,7 @@ class CourseUpdateTest(CourseTestCase):
             Does not supply a provided_id.
             """
             payload = {'content': content, 'date': date}
-            url = course_locator.url_reverse('course_info/')
+            url = course_locator.url_reverse('course_info_update/')
 
             resp = self.client.ajax_post(url, payload)
 
@@ -24,16 +24,14 @@ class CourseUpdateTest(CourseTestCase):
         course_locator = loc_mapper().translate_location(
             self.course.location.course_id, self.course.location, False, True
         )
-        # first get the update to force the creation
-        course_info_url = course_locator.url_reverse('course_info/')
-        self.client.get_html(course_info_url)
+        self.client.get_html(course_locator.url_reverse('course_info/'))
 
         init_content = '<iframe width="560" height="315" src="http://www.youtube.com/embed/RocY-Jd93XU" frameborder="0">'
         content = init_content + '</iframe>'
         payload = get_response(content, 'January 8, 2013')
         self.assertHTMLEqual(payload['content'], content)
 
-        first_update_url = course_locator.url_reverse('course_info', str(payload['id']))
+        first_update_url = course_locator.url_reverse('course_info_update', str(payload['id']))
         content += '<div>div <p>p<br/></p></div>'
         payload['content'] = content
         # POST requests were coming in w/ these header values causing an error; so, repro error here
@@ -50,6 +48,7 @@ class CourseUpdateTest(CourseTestCase):
         payload = get_response(content, 'January 11, 2013')
         self.assertHTMLEqual(content, payload['content'], "self closing ol")
 
+        course_info_url = course_locator.url_reverse('course_info_update/')
         resp = self.client.get_json(course_info_url)
         payload = json.loads(resp.content)
         self.assertTrue(len(payload) == 2)
@@ -101,7 +100,7 @@ class CourseUpdateTest(CourseTestCase):
         payload = json.loads(resp.content)
         before_delete = len(payload)
 
-        url = course_locator.url_reverse('course_info/', str(this_id))
+        url = course_locator.url_reverse('course_info_update/', str(this_id))
         resp = self.client.delete(url)
         payload = json.loads(resp.content)
         self.assertTrue(len(payload) == before_delete - 1)
@@ -122,7 +121,7 @@ class CourseUpdateTest(CourseTestCase):
         course_locator = loc_mapper().translate_location(
             self.course.location.course_id, self.course.location, False, True
         )
-        course_info_url = course_locator.url_reverse('course_info/')
+        course_info_url = course_locator.url_reverse('course_info_update/')
         resp = self.client.ajax_post(course_info_url, payload)
 
         payload = json.loads(resp.content)
