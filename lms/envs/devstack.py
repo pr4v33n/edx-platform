@@ -2,11 +2,7 @@
 Specific overrides to the base prod settings to make development easier.
 """
 
-# We intentionally define lots of variables that aren't used, and
-# want to import all variables from base settings files
-# pylint: disable=W0401, W0614
-
-from .aws import *
+from .aws import * # pylint: disable=wildcard-import, unused-wildcard-import
 
 DEBUG = True
 USE_I18N = True
@@ -15,9 +11,12 @@ TEMPLATE_DEBUG = True
 # By default don't use a worker, execute tasks as if they were local functions
 CELERY_ALWAYS_EAGER = True
 
+
 ################################ EMAIL ########################################
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+MITX_FEATURES['ENABLE_INSTRUCTOR_EMAIL'] = True     # Enable email for all Studio courses
+MITX_FEATURES['REQUIRE_COURSE_EMAIL_AUTH'] = False  # Give all courses email (don't require django-admin perms)
 
 
 ################################ DEBUG TOOLBAR ################################

@@ -2,11 +2,7 @@
 Specific overrides to the base prod settings to make development easier.
 """
 
-# We intentionally define lots of variables that aren't used, and
-# want to import all variables from base settings files
-# pylint: disable=W0401, W0614
-
-from .aws import *
+from .aws import * # pylint: disable=wildcard-import, unused-wildcard-import
 
 DEBUG = True
 USE_I18N = True
