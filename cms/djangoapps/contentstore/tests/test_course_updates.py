@@ -15,23 +15,29 @@ class CourseUpdateTest(CourseTestCase):
             Does not supply a provided_id.
             """
             payload = {'content': content, 'date': date}
-            url = course_locator.url_reverse('course_info_update/')
+            url = update_locator.url_reverse('course_info_update/')
 
             resp = self.client.ajax_post(url, payload)
+            self.assertContains(resp, '', status_code=200)
 
             return json.loads(resp.content)
 
         course_locator = loc_mapper().translate_location(
             self.course.location.course_id, self.course.location, False, True
         )
-        self.client.get_html(course_locator.url_reverse('course_info/'))
+        resp = self.client.get_html(course_locator.url_reverse('course_info/'))
+        self.assertContains(resp, 'Course Updates', status_code=200)
+        update_locator = loc_mapper().translate_location(
+            self.course.location.course_id, self.course.location.replace(category='course_info', name='updates'),
+            False, True
+        )
 
         init_content = '<iframe width="560" height="315" src="http://www.youtube.com/embed/RocY-Jd93XU" frameborder="0">'
         content = init_content + '</iframe>'
         payload = get_response(content, 'January 8, 2013')
         self.assertHTMLEqual(payload['content'], content)
 
-        first_update_url = course_locator.url_reverse('course_info_update', str(payload['id']))
+        first_update_url = update_locator.url_reverse('course_info_update', str(payload['id']))
         content += '<div>div <p>p<br/></p></div>'
         payload['content'] = content
         # POST requests were coming in w/ these header values causing an error; so, repro error here
@@ -48,14 +54,14 @@ class CourseUpdateTest(CourseTestCase):
         payload = get_response(content, 'January 11, 2013')
         self.assertHTMLEqual(content, payload['content'], "self closing ol")
 
-        course_info_url = course_locator.url_reverse('course_info_update/')
-        resp = self.client.get_json(course_info_url)
+        course_update_url = update_locator.url_reverse('course_info_update/')
+        resp = self.client.get_json(course_update_url)
         payload = json.loads(resp.content)
         self.assertTrue(len(payload) == 2)
 
         # try json w/o required fields
         self.assertContains(
-            self.client.ajax_post(course_info_url, {'garbage': 1}),
+            self.client.ajax_post(course_update_url, {'garbage': 1}),
             'Failed to save', status_code=400
         )
 
@@ -68,7 +74,7 @@ class CourseUpdateTest(CourseTestCase):
         content = 'blah blah'
         payload = {'content': content, 'date': 'January 21, 2013'}
         self.assertContains(
-            self.client.ajax_post(course_info_url + '/9', payload),
+            self.client.ajax_post(course_update_url + '/9', payload),
             'Failed to save', status_code=400
         )
 
@@ -78,7 +84,7 @@ class CourseUpdateTest(CourseTestCase):
                    'date': 'January 11, 2013'}
 
         self.assertContains(
-            self.client.ajax_post(course_info_url, payload),
+            self.client.ajax_post(course_update_url, payload),
             '<garbage'
         )
 
@@ -88,7 +94,7 @@ class CourseUpdateTest(CourseTestCase):
         self.assertHTMLEqual(content, payload['content'])
 
         # now try to delete a non-existent update
-        self.assertContains(self.client.delete(course_info_url + '/19'), "delete", status_code=400)
+        self.assertContains(self.client.delete(course_update_url + '/19'), "delete", status_code=400)
 
         # now delete a real update
         content = 'blah blah'
@@ -96,11 +102,11 @@ class CourseUpdateTest(CourseTestCase):
         this_id = payload['id']
         self.assertHTMLEqual(content, payload['content'], "single iframe")
         # first count the entries
-        resp = self.client.get_json(course_info_url)
+        resp = self.client.get_json(course_update_url)
         payload = json.loads(resp.content)
         before_delete = len(payload)
 
-        url = course_locator.url_reverse('course_info_update/', str(this_id))
+        url = update_locator.url_reverse('course_info_update/', str(this_id))
         resp = self.client.delete(url)
         payload = json.loads(resp.content)
         self.assertTrue(len(payload) == before_delete - 1)
@@ -118,17 +124,17 @@ class CourseUpdateTest(CourseTestCase):
         content = init_content + '</iframe>'
         payload = {'content': content, 'date': 'January 8, 2013'}
 
-        course_locator = loc_mapper().translate_location(
-            self.course.location.course_id, self.course.location, False, True
+        update_locator = loc_mapper().translate_location(
+            self.course.location.course_id, location, False, True
         )
-        course_info_url = course_locator.url_reverse('course_info_update/')
-        resp = self.client.ajax_post(course_info_url, payload)
+        course_update_url = update_locator.url_reverse('course_info_update/')
+        resp = self.client.ajax_post(course_update_url, payload)
 
         payload = json.loads(resp.content)
 
         self.assertHTMLEqual(payload['content'], content)
 
         # now confirm that the bad news and the iframe make up 2 updates
-        resp = self.client.get_json(course_info_url)
+        resp = self.client.get_json(course_update_url)
         payload = json.loads(resp.content)
         self.assertTrue(len(payload) == 2)

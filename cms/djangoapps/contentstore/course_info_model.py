@@ -1,17 +1,17 @@
+import re
+import logging
+from lxml import html, etree
+from django.http import HttpResponseBadRequest
+import django.utils
 from xmodule.modulestore.exceptions import ItemNotFoundError
 from xmodule.modulestore.django import modulestore
-from lxml import html, etree
-import re
-from django.http import HttpResponseBadRequest
-import logging
-import django.utils
 
 # # TODO store as array of { date, content } and override  course_info_module.definition_from_xml
 # # This should be in a class which inherits from XmlDescriptor
 log = logging.getLogger(__name__)
 
 
-def get_course_updates(location):
+def get_course_updates(location, provided_id):
     """
     Retrieve the relevant course_info updates and unpack into the model which the client expects:
     [{id : index, date : string, content : html string}]
@@ -41,11 +41,16 @@ def get_course_updates(location):
             if len(update) > 0:
                 content = _course_info_content(update)
                 # make the id on the client be 1..len w/ 1 being the oldest and len being the newest
-                course_upd_collection.append({
-                    "id": len(course_html_parsed) - idx,
+                computed_id = len(course_html_parsed) - idx
+                payload = {
+                    "id": computed_id,
                     "date": update.findtext("h2"),
                     "content": content
-                })
+                }
+                if provided_id is None:
+                    course_upd_collection.append(payload)
+                elif provided_id == computed_id:
+                    return payload
 
     return course_upd_collection
 
@@ -118,6 +123,7 @@ def _course_info_content(html_parsed):
     return content
 
 
+# pylint: disable=unused-argument
 def delete_course_update(location, update, passed_id):
     """
     Delete the given course_info update from the db.
@@ -153,7 +159,7 @@ def delete_course_update(location, update, passed_id):
         store = modulestore('direct')
         store.update_item(location, course_updates.data)
 
-    return get_course_updates(location)
+    return get_course_updates(location, None)
 
 
 def get_idx(passed_id):
