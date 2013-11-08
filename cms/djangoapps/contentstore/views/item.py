@@ -7,7 +7,6 @@ from requests.packages.urllib3.util import parse_url
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.contrib.auth.decorators import login_required
 
-from xmodule.modulestore import Location
 from xmodule.modulestore.django import modulestore, loc_mapper
 from xmodule.modulestore.inheritance import own_metadata
 from xmodule.modulestore.exceptions import ItemNotFoundError, InvalidLocationError
@@ -24,8 +23,9 @@ from xmodule.x_module import XModuleDescriptor
 from django.views.decorators.http import require_http_methods
 from xmodule.modulestore.locator import BlockUsageLocator
 from student.models import CourseEnrollment
+from django.http import HttpResponseBadRequest
 
-__all__ = ['create_item', 'orphan', 'xblock_handler']
+__all__ = ['orphan', 'xblock_handler']
 
 log = logging.getLogger(__name__)
 
@@ -52,26 +52,33 @@ def xblock_handler(request, tag=None, course_id=None, branch=None, version_guid=
                        to None! Absent ones will be left alone.
             :nullout: which metadata fields to set to None
     """
-    location = BlockUsageLocator(course_id=course_id, branch=branch, version_guid=version_guid, usage_id=block)
-    if not has_access(request.user, location):
-        raise PermissionDenied()
+    if course_id is not None:
+        location = BlockUsageLocator(course_id=course_id, branch=branch, version_guid=version_guid, usage_id=block)
+        if not has_access(request.user, location):
+            raise PermissionDenied()
 
-    old_location = loc_mapper().translate_locator_to_location(location)
+        old_location = loc_mapper().translate_locator_to_location(location)
 
-    if request.method == 'DELETE':
-        delete_children = bool(request.REQUEST.get('recurse', False))
-        delete_all_versions = bool(request.REQUEST.get('all_versions', False))
+        if request.method == 'DELETE':
+            delete_children = bool(request.REQUEST.get('recurse', False))
+            delete_all_versions = bool(request.REQUEST.get('all_versions', False))
 
-        return _delete_item_at_location(old_location, delete_children, delete_all_versions)
-    else:  # PUT or POST currently mapped to save.
-        return _save_item(
-            old_location,
-            data=request.json.get('data'),
-            children=request.json.get('children'),
-            metadata=request.json.get('metadata'),
-            nullout=request.json.get('nullout')
+            return _delete_item_at_location(old_location, delete_children, delete_all_versions)
+        else:  # Since we have a course_id, we are updating an existing xblock.
+            return _save_item(
+                old_location,
+                data=request.json.get('data'),
+                children=request.json.get('children'),
+                metadata=request.json.get('metadata'),
+                nullout=request.json.get('nullout')
+            )
+    elif request.method in ('PUT', 'POST'):
+        return _create_item(request)
+    else:
+        return HttpResponseBadRequest(
+            ( "Only instance creation is supported without a course_id."),
+            content_type="text/plain"
         )
-
 
 def _save_item(item_location, data=None, children=None, metadata=None, nullout=None):
     """
@@ -142,9 +149,10 @@ def _save_item(item_location, data=None, children=None, metadata=None, nullout=N
 
 @login_required
 @expect_json
-def create_item(request):
+def _create_item(request):
     """View for create items."""
-    parent_location = Location(request.json['parent_location'])
+    parent_locator = BlockUsageLocator(request.json['parent_locator'])
+    parent_location = loc_mapper().translate_locator_to_location(parent_locator)
     category = request.json['category']
 
     display_name = request.json.get('display_name')
@@ -183,7 +191,7 @@ def create_item(request):
     locator = loc_mapper().translate_location(
         get_course_for_item(parent_location).location.course_id, dest_location, False, True
     )
-    return JsonResponse({'id': dest_location.url(), "update_url": locator.url_reverse("xblock")})
+    return JsonResponse({'id': dest_location.url(), "locator": unicode(locator), "update_url": locator.url_reverse("xblock")})
 
 
 def _delete_item_at_location(item_location, delete_children=False, delete_all_versions=False):

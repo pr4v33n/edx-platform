@@ -225,12 +225,12 @@ function createNewUnit(e) {
 
     analytics.track('Created a Unit', {
         'course': course_location_analytics,
-        'parent_location': parent
+        'parent_locator': parent
     });
 
 
-    $.postJSON('/create_item', {
-        'parent_location': parent,
+    $.postJSON('/xblock', {
+        'parent_locator': parent,
         'category': category,
         'display_name': 'New Unit'
     },

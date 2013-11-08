@@ -4,7 +4,7 @@ define ["jquery", "jquery.ui", "backbone", "js/views/feedback_prompt", "js/views
 
     initialize: =>
       @$('.component').each((idx, element) =>
-          model = new Backbone.Model(id: $(element).data('id'))
+          model = new Backbone.Model(id: $(element).data('locator'))
           model.url = $(element).data('update_url')
           new ModuleEditView(
               el: element,
@@ -28,7 +28,7 @@ define ["jquery", "jquery.ui", "backbone", "js/views/feedback_prompt", "js/views
     tabMoved: (event, ui) =>
       tabs = []
       @$('.component').each((idx, element) =>
-          tabs.push($(element).data('id'))
+          tabs.push($(element).data('locator'))
       )
 
       analytics.track "Reordered Static Pages",
@@ -78,7 +78,7 @@ define ["jquery", "jquery.ui", "backbone", "js/views/feedback_prompt", "js/views
 
               analytics.track "Deleted Static Page",
                 course: course_location_analytics
-                id: $component.data('id')
+                id: $component.data('locator')
               deleting = new NotificationView.Mini
                 title: gettext('Deleting&hellip;')
               deleting.show()

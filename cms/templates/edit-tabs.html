@@ -13,7 +13,7 @@ require(["backbone", "coffee/src/views/tabs"], function(Backbone, TabsEditView) 
     new TabsEditView({
       el: $('.main-wrapper'),
       model: new Backbone.Model({
-        id: '${context_course.location}'
+        id: '${locator}'
       }),
       mast: $('.wrapper-mast')
     });

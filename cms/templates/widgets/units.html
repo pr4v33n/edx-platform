@@ -48,7 +48,12 @@ This def will enumerate through a passed in subsection and list all of the units
   <li>
     <%include file="_ui-dnd-indicator-initial.html" />
 
-    <a href="#" class="new-unit-item" data-category="${new_unit_category}" data-parent="${subsection.location}">
+    <%
+      subsection_locator = loc_mapper().translate_location(
+        context_course.location.course_id, subsection.location, False, True
+      )
+    %>
+    <a href="#" class="new-unit-item" data-category="${new_unit_category}" data-parent="${subsection_locator}">
       <span class="new-unit-icon"></span>New Unit
     </a>
   </li>

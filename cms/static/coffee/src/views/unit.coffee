@@ -98,7 +98,7 @@ define ["jquery", "jquery.ui", "gettext", "backbone",
       @$newComponentItem.before(editor.$el)
 
       editor.createItem(
-        @$el.data('id'),
+        @$el.data('locator'),
         $(event.currentTarget).data()
       )
 

@@ -133,8 +133,8 @@ define(["domReady", "jquery", "jquery.ui", "underscore", "gettext", "js/views/fe
                 'display_name': display_name
             });
 
-            $.postJSON('/create_item', {
-                    'parent_location': parent,
+            $.postJSON('/xblock', {
+                    'parent_locator': parent,
                     'category': category,
                     'display_name': display_name
                 },
@@ -183,8 +183,8 @@ define(["domReady", "jquery", "jquery.ui", "underscore", "gettext", "js/views/fe
             });
 
 
-            $.postJSON('/create_item', {
-                    'parent_location': parent,
+            $.postJSON('/xblock', {
+                    'parent_locator': parent,
                     'category': category,
                     'display_name': display_name
                 },

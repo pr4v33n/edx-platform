@@ -63,9 +63,9 @@ define ["backbone", "jquery", "underscore", "gettext", "xblock/runtime.v1",
       return _.extend(@metadataEditor.getModifiedMetadataValues(), @customMetadata())
 
     createItem: (parent, payload) ->
-      payload.parent_location = parent
+      payload.parent_locator = parent
       $.postJSON(
-          "/create_item"
+          "/xblock"
           payload
           (data) =>
               @model.set(id: data.id)
