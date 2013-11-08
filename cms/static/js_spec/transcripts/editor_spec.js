@@ -180,6 +180,7 @@ function ($, Backbone, _, Utils, Editor, MetadataView, MetadataModel, MetadataCo
                             'https://domain.com/default.mp4',
                             'https://domain.com/default.webm'
                         ]);
+                    });
                 });
 
                 it('If metadataCollection is not defined', function () {
