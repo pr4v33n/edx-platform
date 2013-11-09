@@ -160,7 +160,7 @@ define(["domReady", "jquery", "jquery.ui", "underscore", "gettext", "js/views/fe
             var $saveButton = $newSubsection.find('.new-subsection-name-save');
             var $cancelButton = $newSubsection.find('.new-subsection-name-cancel');
 
-            var parent = $(this).parents("section.branch").data("id");
+            var parent = $(this).parents("section.branch").data("parent");
 
             $saveButton.data('parent', parent);
             $saveButton.data('category', $(this).data('category'));

@@ -148,12 +148,13 @@ require(["domReady!", "jquery", "js/models/location", "js/models/section", "js/v
         <article class="courseware-overview" data-id="${context_course.location.url()}" data-update_url="${course_update_url}">
           % for section in sections:
           <%
-            section_update_url = loc_mapper().translate_location(
+            section_locator = loc_mapper().translate_location(
               context_course.location.course_id, section.location, False, True
-            ).url_reverse('xblock')
+            )
+            section_update_url = section_locator.url_reverse('xblock')
           %>
           <section class="courseware-section branch is-draggable" data-id="${section.location}"
-                   data-parent-id="${context_course.location.url()}" data-update_url="${section_update_url}">
+                   data-parent="${section_locator}" data-update_url="${section_update_url}">
 
             <%include file="widgets/_ui-dnd-indicator-before.html" />
 
@@ -197,12 +198,13 @@ require(["domReady!", "jquery", "js/models/location", "js/models/section", "js/v
               <ol class="sortable-subsection-list" data-id="${section.location.url()}">
                 % for subsection in section.get_children():
                   <%
-                    subsection_update_url = loc_mapper().translate_location(
+                    subsection_locator = loc_mapper().translate_location(
                       context_course.location.course_id, subsection.location, False, True
-                    ).url_reverse('xblock')
+                    )
+                    subsection_update_url = subsection_locator.url_reverse('xblock')
                   %>
                 <li class="courseware-subsection branch collapsed id-holder is-draggable" data-id="${subsection.location}"
-                    data-parent-id="${section.location.url()}" data-update_url="${subsection_update_url}">
+                    data-parent="${subsection_locator}" data-update_url="${subsection_update_url}">
 
                   <%include file="widgets/_ui-dnd-indicator-before.html" />
 

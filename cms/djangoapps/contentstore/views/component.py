@@ -182,9 +182,10 @@ def edit_unit(request, location):
 
     # Note that the unit_state (draft, public, private) does not match up with the published value
     # passed to translate_location. The two concepts are different at this point.
-    unit_update_url = loc_mapper().translate_location(
+    unit_locator = loc_mapper().translate_location(
         course.location.course_id, Location(location), False, True
-    ).url_reverse("xblock", "")
+    )
+    unit_update_url = unit_locator.url_reverse("xblock", "")
 
     component_templates = defaultdict(list)
     for category in COMPONENT_TYPES:
@@ -304,6 +305,7 @@ def edit_unit(request, location):
         'context_course': course,
         'unit': item,
         'unit_location': location,
+        'unit_locator': unit_locator,
         'unit_update_url': unit_update_url,
         'components': components,
         'component_templates': component_templates,

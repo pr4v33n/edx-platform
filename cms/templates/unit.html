@@ -36,7 +36,8 @@ require(["domReady!", "jquery", "backbone", "coffee/src/views/unit", "jquery.ui"
 
 </%block>
 <%block name="content">
-  <div class="main-wrapper edit-state-${unit_state}" data-id="${unit_location}" data-update_url="${unit_update_url}">
+  <div class="main-wrapper edit-state-${unit_state}" data-id="${unit_location}" data-locator="${unit_locator}"
+       data-update_url="${unit_update_url}">
     <div class="inner-wrapper">
       <div class="alert editing-draft-alert">
         <p class="alert-message"><strong>${_("You are editing a draft.")}</strong>
